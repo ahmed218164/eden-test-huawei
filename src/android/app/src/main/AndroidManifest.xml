@@ -52,6 +52,19 @@ SPDX-License-Identifier: GPL-3.0-or-later
         <meta-data android:name="com.oneplus.gamespace.gamebooster" android:value="true" />
         <meta-data android:name="android.game_mode_config" android:resource="@xml/game_mode_config" />
 
+        <!-- Huawei Native Libraries for CGKit Integration -->
+        <!-- Using OFFICIAL public libraries from /vendor/etc/public.libraries.txt -->
+        <!-- Required for Kirin 9000WE GPU optimization -->
+        <uses-native-library
+            android:name="libigs_client.so"
+            android:required="false" />
+        <uses-native-library
+            android:name="libai_client.so"
+            android:required="false" />
+        <uses-native-library
+            android:name="libai_infra.so"
+            android:required="false" />
+
         <activity
             android:name="org.yuzu.yuzu_emu.ui.main.MainActivity"
             android:exported="true"

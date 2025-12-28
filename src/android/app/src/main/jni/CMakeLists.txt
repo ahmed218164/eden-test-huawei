@@ -20,6 +20,17 @@ set_target_properties(huawei_osr PROPERTIES
 # Add Huawei include directory
 include_directories(include/huawei/osr)
 
+# Add system library paths for Huawei dependencies
+# This allows the linker to find libiGraphicsCore.huawei.so
+if (ANDROID)
+    # Add Huawei system library paths
+    link_directories(
+        /system/lib64
+        /vendor/lib64
+        /vendor/lib64/hw
+    )
+endif()
+
 # =========================================================
 
 add_library(yuzu-android SHARED
