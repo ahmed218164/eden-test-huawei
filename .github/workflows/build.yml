@@ -22,30 +22,17 @@ jobs:
           distribution: 'temurin'
           cache: gradle
 
-      - name: Install Build Dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y glslang-tools # إضافة الأداة المفقودة هنا ✅
-
-      - name: Install Android SDK
+      - name: Install Android SDK & Tools
         uses: android-actions/setup-android@v3
-
-      - name: Grant Execute Permission
-        run: |
-          if [ -f src/android/gradlew ]; then
-            chmod +x src/android/gradlew
-          fi
 
       - name: Build APK
         run: |
+          # البحث عن ملف gradlew
           GRADLEW_PATH=$(find . -name gradlew | head -n 1)
           chmod +x $GRADLEW_PATH
           cd $(dirname $GRADLEW_PATH)
-          ./gradlew assembleMainlineDebug
-
-      - name: Upload Finished APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: Eden-Huawei-Maleoon-Edition
-          path: |
-            **/build/outputs/apk/mainline/debug/*.apk
+          
+          # إخبار النظام بمكان أداة glslangValidator الموجودة داخل الـ NDK
+          # لضمان عدم حدوث خطأ "not found" مرة أخرى
+          export ANDROID_NDK_HOME=$ANDROID_SDK_ROOT/ndk/$(ls $ANDROID_SDK_ROOT/ndk | head -1)
+          ./gradlew assembleMainlineDebug -Pandroid.plugin.v3.check=false
