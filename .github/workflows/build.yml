@@ -27,9 +27,8 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y glslang-tools ninja-build
-          # إجبار النظام على التعرف على الأداة في المسار العالمي
-          sudo ln -sf /usr/bin/glslangValidator /usr/local/bin/glslangValidator
-          sudo ln -sf /usr/bin/glslangValidator /usr/bin/glslang
+          # التحقق من وجود الأداة للتأكد فقط
+          glslangValidator --version
 
       - name: Build APK
         run: |
@@ -37,8 +36,15 @@ jobs:
           chmod +x $GRADLEW_PATH
           cd $(dirname $GRADLEW_PATH)
           
-          # البناء مع تمرير مسارات صريحة لتجنب أي عمى برمي
+          # البناء النهائي مع تمرير مسار الأداة المؤكد
           ./gradlew assembleMainlineDebug \
             -Dorg.gradle.daemon=false \
             -Pandroid.plugin.v3.check=false \
             -Pandroid.externalNativeBuild.cmake.arguments="-DGLSLANG_VALIDATOR=/usr/bin/glslangValidator"
+
+      - name: Upload Finished APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Eden-Huawei-Maleoon-Edition
+          path: |
+            **/build/outputs/apk/mainline/debug/*.apk
