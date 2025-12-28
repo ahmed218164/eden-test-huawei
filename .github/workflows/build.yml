@@ -22,38 +22,23 @@ jobs:
           distribution: 'temurin'
           cache: gradle
 
-      # 1. تنصيب الأدوات من نظام لينكس مباشرة (أكثر استقراراً)
-      - name: Install System Dependencies
+      # 1. تنصيب أداة الجرافيكس من نظام لينكس مباشرة
+      - name: Install glslangValidator
         run: |
           sudo apt-get update
-          sudo apt-get install -y glslang-tools ninja-build
+          sudo apt-get install -y glslang-tools
 
-      # 2. تنصيب مكونات الأندرويد الأساسية فقط
-      - name: Install Android SDK Components
-        run: |
-          yes | ${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin/sdkmanager "cmake;3.22.1" "ndk;28.0.12438421"
-
-      - name: Grant Execute Permission
-        run: |
-          if [ -f src/android/gradlew ]; then
-            chmod +x src/android/gradlew
-          fi
-
-      # 3. البناء مع تحديد مسار الأداة يدوياً
+      # 2. بناء التطبيق وتجاوز فحص النسخ
       - name: Build APK
         run: |
+          # البحث عن ملف التشغيل
           GRADLEW_PATH=$(find . -name gradlew | head -n 1)
           chmod +x $GRADLEW_PATH
           cd $(dirname $GRADLEW_PATH)
           
-          # تحديد المسار الصريح للأداة التي نصبناها في الخطوة 1
-          GLSLANG_BIN="/usr/bin/glslangValidator"
-          
-          echo "Force using glslangValidator at: $GLSLANG_BIN"
-          
-          # تمرير المسار لـ CMake بقوة
+          # إجبار النظام على استخدام الأداة التي نصبناها في الخطوة 1
           ./gradlew assembleMainlineDebug \
-            -Pandroid.externalNativeBuild.cmake.arguments="-DGLSLANG_VALIDATOR=$GLSLANG_BIN" \
+            -Pandroid.externalNativeBuild.cmake.arguments="-DGLSLANG_VALIDATOR=/usr/bin/glslangValidator" \
             -Pandroid.plugin.v3.check=false
 
       - name: Upload Finished APK
