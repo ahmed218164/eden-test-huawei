@@ -22,15 +22,16 @@ jobs:
           distribution: 'temurin'
           cache: gradle
 
+      # 1. تنصيب الأدوات من نظام لينكس مباشرة (أكثر استقراراً)
       - name: Install System Dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y glslang-tools
+          sudo apt-get install -y glslang-tools ninja-build
 
+      # 2. تنصيب مكونات الأندرويد الأساسية فقط
       - name: Install Android SDK Components
         run: |
-          # تنصيب أدوات الـ Shader الرسمية من جوجل لضمان التوافق
-          yes | ${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin/sdkmanager "shader-tools" "cmake;3.22.1" "ndk;28.0.12438421"
+          yes | ${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin/sdkmanager "cmake;3.22.1" "ndk;28.0.12438421"
 
       - name: Grant Execute Permission
         run: |
@@ -38,24 +39,21 @@ jobs:
             chmod +x src/android/gradlew
           fi
 
-      - name: Build APK (With Forced Shader Path)
+      # 3. البناء مع تحديد مسار الأداة يدوياً
+      - name: Build APK
         run: |
           GRADLEW_PATH=$(find . -name gradlew | head -n 1)
           chmod +x $GRADLEW_PATH
           cd $(dirname $GRADLEW_PATH)
           
-          # تحديد مسار الأداة بدقة: إما من SDK أو من النظام
-          if [ -f "$ANDROID_SDK_ROOT/shader-tools/latest/glslangValidator" ]; then
-            GLSLANG="$ANDROID_SDK_ROOT/shader-tools/latest/glslangValidator"
-          else
-            GLSLANG="/usr/bin/glslangValidator"
-          fi
+          # تحديد المسار الصريح للأداة التي نصبناها في الخطوة 1
+          GLSLANG_BIN="/usr/bin/glslangValidator"
           
-          echo "Using glslangValidator at: $GLSLANG"
+          echo "Force using glslangValidator at: $GLSLANG_BIN"
           
-          # تمرير المسار إجبارياً إلى CMake
+          # تمرير المسار لـ CMake بقوة
           ./gradlew assembleMainlineDebug \
-            -Pandroid.externalNativeBuild.cmake.arguments="-DGLSLANG_VALIDATOR=$GLSLANG" \
+            -Pandroid.externalNativeBuild.cmake.arguments="-DGLSLANG_VALIDATOR=$GLSLANG_BIN" \
             -Pandroid.plugin.v3.check=false
 
       - name: Upload Finished APK
