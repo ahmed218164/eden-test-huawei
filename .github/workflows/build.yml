@@ -22,17 +22,45 @@ jobs:
           distribution: 'temurin'
           cache: gradle
 
-      - name: Install Android SDK & Tools
-        uses: android-actions/setup-android@v3
-
-      - name: Build APK
+      - name: Install System Dependencies
         run: |
-          # البحث عن ملف gradlew
+          sudo apt-get update
+          sudo apt-get install -y glslang-tools
+
+      - name: Install Android SDK Components
+        run: |
+          # تنصيب أدوات الـ Shader الرسمية من جوجل لضمان التوافق
+          yes | ${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin/sdkmanager "shader-tools" "cmake;3.22.1" "ndk;28.0.12438421"
+
+      - name: Grant Execute Permission
+        run: |
+          if [ -f src/android/gradlew ]; then
+            chmod +x src/android/gradlew
+          fi
+
+      - name: Build APK (With Forced Shader Path)
+        run: |
           GRADLEW_PATH=$(find . -name gradlew | head -n 1)
           chmod +x $GRADLEW_PATH
           cd $(dirname $GRADLEW_PATH)
           
-          # إخبار النظام بمكان أداة glslangValidator الموجودة داخل الـ NDK
-          # لضمان عدم حدوث خطأ "not found" مرة أخرى
-          export ANDROID_NDK_HOME=$ANDROID_SDK_ROOT/ndk/$(ls $ANDROID_SDK_ROOT/ndk | head -1)
-          ./gradlew assembleMainlineDebug -Pandroid.plugin.v3.check=false
+          # تحديد مسار الأداة بدقة: إما من SDK أو من النظام
+          if [ -f "$ANDROID_SDK_ROOT/shader-tools/latest/glslangValidator" ]; then
+            GLSLANG="$ANDROID_SDK_ROOT/shader-tools/latest/glslangValidator"
+          else
+            GLSLANG="/usr/bin/glslangValidator"
+          fi
+          
+          echo "Using glslangValidator at: $GLSLANG"
+          
+          # تمرير المسار إجبارياً إلى CMake
+          ./gradlew assembleMainlineDebug \
+            -Pandroid.externalNativeBuild.cmake.arguments="-DGLSLANG_VALIDATOR=$GLSLANG" \
+            -Pandroid.plugin.v3.check=false
+
+      - name: Upload Finished APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Eden-Huawei-Maleoon-Edition
+          path: |
+            **/build/outputs/apk/mainline/debug/*.apk
